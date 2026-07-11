@@ -4,11 +4,14 @@ An AI-powered CSV import tool that extracts CRM lead information from any CSV fo
 
 The system takes CSV files with any column structure, sends them through Google Gemini AI for intelligent field mapping, and returns structured records matching the GrowEasy CRM schema.
 
+Live demo: https://frontend-three-chi-43.vercel.app
+
 ## Features
 
 - Drag and drop or click to upload any CSV file
 - Preview raw CSV data in a virtualized table (handles 10,000+ rows)
-- AI-powered field mapping using Google Gemini (free tier)
+- AI-powered field mapping using Google Gemini 3.5 Flash (free tier)
+- Falls back to Groq Llama 3.3 70B or built-in pattern matcher if Gemini is unavailable
 - Batch processing with automatic retry on failure
 - Dark mode support
 - Responsive design
@@ -16,8 +19,9 @@ The system takes CSV files with any column structure, sends them through Google 
 ## Tech Stack
 
 - **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, TanStack Table
-- **Backend**: Express, TypeScript, Google Gemini API
-- **Deployment**: Vercel (frontend), Render (backend)
+- **API**: Next.js API routes (serverless)
+- **AI**: Google Gemini 3.5 Flash (primary), Groq Llama 3.3 70B (fallback), custom pattern matcher (last resort)
+- **Hosting**: Vercel (single deployment)
 
 ## Setup
 
@@ -25,14 +29,6 @@ The system takes CSV files with any column structure, sends them through Google 
 
 - Node.js 18+
 - npm
-- A Gemini API key (free, no credit card required)
-
-### Getting a Gemini API Key
-
-1. Go to https://aistudio.google.com/apikey
-2. Sign in with your Google account
-3. Click "Create API Key" and copy the key
-4. This is completely free and does not require a credit card
 
 ### Running Locally
 
@@ -40,44 +36,23 @@ The system takes CSV files with any column structure, sends them through Google 
 
 ```bash
 git clone https://github.com/shashank-d5/GrowEasy-intern-assignment.git
-cd GrowEasy-intern-assignment
+cd GrowEasy-intern-assignment/frontend
 ```
 
-2. Set up the backend:
+2. Install dependencies and start:
 
 ```bash
-cd backend
-cp ../.env.example .env
-# Edit .env and add your Gemini API key
 npm install
 npm run dev
 ```
 
-The backend starts on http://localhost:3001.
+3. Open http://localhost:3000 in your browser.
 
-3. Set up the frontend (in a new terminal):
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend starts on http://localhost:3000.
-
-### Running with Docker
-
-```bash
-# Set your API key
-export GEMINI_API_KEY=your_key_here
-
-# Start both services
-docker compose up
-```
+The app works without any API key using the built-in pattern matcher. For AI-powered field mapping, set the GEMINI_API_KEY environment variable (get a free key at https://aistudio.google.com/apikey).
 
 ## Usage
 
-1. Open http://localhost:3000 in your browser
+1. Open https://frontend-three-chi-43.vercel.app in your browser
 2. Drag a CSV file onto the upload area or click to browse
 3. Review the parsed data in the preview table
 4. Click "Confirm and Import" to send the data through AI processing
@@ -87,33 +62,33 @@ The system handles any CSV format. Column names are mapped intelligently by the 
 
 ## Architecture
 
-```
-frontend/        Next.js 14 app with 4-step upload wizard
-  src/
-    components/  UI components (UploadZone, CSVPreview, ParsedResult, etc.)
-    hooks/       Custom React hooks for upload and import logic
-    lib/         API client
-    types/       TypeScript type definitions
+The entire application runs under a single URL as a Next.js project:
 
-backend/         Express API server
-  src/
-    routes/      API route definitions (upload, import)
-    controllers/ Request handlers
-    services/    Business logic (CSV parsing, AI integration, batch processing)
-    prompts/     Gemini prompt templates
-    middleware/   Error handling and rate limiting
-    types/       TypeScript type definitions
+```
+src/
+  app/
+    page.tsx            4-step upload wizard
+    api/
+      upload/           POST /api/upload - parse CSV files
+      import/           POST /api/import - AI field extraction
+      health/           GET /api/health - health check
+  components/           UI components (UploadZone, CSVPreview, ParsedResult, etc.)
+  hooks/                Custom React hooks for upload and import logic
+  lib/                  API client
+  services/             Business logic (CSV parser, AI integration, batch processing, field mapping)
+  prompts/              AI prompt templates
+  types/                TypeScript type definitions
 ```
 
 ### Data Flow
 
-1. User uploads a CSV file
-2. Backend parses the CSV and returns headers and rows
+1. User uploads a CSV file to /api/upload
+2. Server parses the CSV and returns headers and rows
 3. User reviews the data in the preview table
 4. User confirms the import
-5. Backend sends rows in batches to Gemini AI
-6. AI maps the fields to the CRM schema
-7. Backend validates and cleans the results
+5. Server sends rows in batches to the AI service
+6. AI maps the fields to the CRM schema (Gemini -> Groq -> pattern matcher fallback chain)
+7. Server validates and cleans the results
 8. Frontend displays the extracted records
 
 ## API Endpoints

@@ -1,10 +1,8 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
 export async function uploadCSV(file: File) {
   const form = new FormData();
   form.append('file', file);
 
-  const res = await fetch(`${API_BASE}/upload`, {
+  const res = await fetch('/api/upload', {
     method: 'POST',
     body: form,
   });
@@ -18,7 +16,7 @@ export async function uploadCSV(file: File) {
 }
 
 export async function importRows(headers: string[], rows: Record<string, string>[]) {
-  const res = await fetch(`${API_BASE}/import`, {
+  const res = await fetch('/api/import', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ headers, rows }),
